@@ -1,0 +1,82 @@
+:root {
+  --we-red: #860d12;
+  --we-orange: #fa8c18;
+  --we-red-soft: #f6e9ea;
+  --we-slate: #4a5a7a;
+  --we-amber: #fba346;
+  --we-gold: #f6b305;
+  --we-brick: #d4380d;
+}
+
+body {
+  margin: 0;
+  background: #f7f4f3;
+}
+
+.ledger-cell {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ledger-present { background: #e6f7ec; color: #1f7a3d; }
+.ledger-late { background: #fff4e0; color: #ad6800; }
+.ledger-absent { background: #fde8e2; color: var(--we-brick); }
+.ledger-notified { outline: 2px solid var(--we-gold); }
+.ledger-none { background: #f1eeed; color: #7b8499; }
+.ledger-future { color: #b4bacb; }
+
+.cap-empty {
+  position: relative;
+  width: 100%;
+  height: 112px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #b4aeac;
+  cursor: pointer;
+  font: inherit;
+}
+.cap-empty .cap-empty-plus { display: none; color: var(--we-red); font-size: 16px; }
+.cap-empty:hover, .cap-empty:focus-visible { background: #f6e9ea; outline: none; }
+.cap-empty:hover .cap-empty-dash, .cap-empty:focus-visible .cap-empty-dash { display: none; }
+.cap-empty:hover .cap-empty-plus, .cap-empty:focus-visible .cap-empty-plus { display: inline; }
+.cap-table .ant-table-thead > tr > th { background: #f6e9ea; font-weight: 700; }
+.cap-table .ant-table-tbody > tr > td { vertical-align: middle; border-bottom: 1px solid #f0ebea; }
+
+.cap-cell {
+  min-width: 150px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f6e9ea;
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fadeIn 0.18s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+@media print {
+  .ant-layout-sider, .ant-layout-header, .no-print { display: none !important; }
+  .ant-layout-content { padding: 0 !important; }
+  body { background: #fff; }
+  .ant-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+
+.chart-clickable .recharts-bar-rectangle,
+.chart-clickable .recharts-pie-sector {
+  cursor: pointer;
+}
+.chart-clickable .recharts-bar-rectangle:hover,
+.chart-clickable .recharts-pie-sector:hover {
+  opacity: 0.85;
+}
