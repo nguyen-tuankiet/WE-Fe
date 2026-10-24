@@ -1,6 +1,6 @@
 # Frontend — WE - Kết nối quốc tế
 
-Giao diện React + Ant Design 6 (Vite, TypeScript). **Hiện là bản xem trước với dữ liệu giả** lưu trong bộ nhớ (mất khi tải lại trang, trừ phiên đăng nhập).
+Giao diện React + Ant Design 6 (Vite, TypeScript). Có hai chế độ (`src/api/index.ts`): **`mock`** = dữ liệu giả trong bộ nhớ để xem trước giao diện (`npm run dev`), **`real`** = gọi backend thật (`VITE_API_MODE=real`). Bản build/deploy (`.env.production`) dùng `real`; trên Vercel `/api` được chuyển tiếp sang backend (xem `vercel.json`) để cookie đăng nhập cùng miền.
 
 ```bash
 npm install

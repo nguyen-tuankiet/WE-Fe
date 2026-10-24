@@ -93,6 +93,8 @@ export interface Staff {
   email: string;
   roles: Role[];
   active: boolean;
+  /** YYYY-MM-DD; có thể chưa nhập */
+  birthday?: string | null;
 }
 
 export interface AttendanceRecord {

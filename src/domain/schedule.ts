@@ -31,20 +31,23 @@ export interface Progress {
   held: number;
   recorded: number;
   remaining: number;
-  /** buổi đã diễn ra theo lịch nhưng chưa có điểm danh */
-  missingDates: string[];
+  /** số buổi đã diễn ra theo lịch nhưng chưa có điểm danh ("Chưa ghi nhận", không suy đoán) */
+  missing: number;
+  firstMissingDate: string | null;
   endDate: string | null;
 }
 
 export function computeProgress(schedule: string[], recordedDates: string[], today: string): Progress {
   const recorded = new Set(recordedDates);
   const past = schedule.filter((d) => d <= today);
+  const missingDates = past.filter((d) => d < today && !recorded.has(d));
   return {
     total: schedule.length,
     held: past.length,
     recorded: schedule.filter((d) => recorded.has(d)).length,
     remaining: schedule.length - past.length,
-    missingDates: past.filter((d) => d < today && !recorded.has(d)),
+    missing: missingDates.length,
+    firstMissingDate: missingDates[0] ?? null,
     endDate: schedule.length ? schedule[schedule.length - 1] : null,
   };
 }

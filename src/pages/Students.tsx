@@ -1,6 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, DatePicker, Flex, Form, Input, Modal, Select, Table, Tag, Typography } from 'antd';
+import { App, AutoComplete, Button, DatePicker, Flex, Form, Input, Modal, Select, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -31,6 +31,7 @@ export function StudentsPage() {
       form.resetFields();
       qc.invalidateQueries({ queryKey: ['students'] });
     },
+    onError: (e: Error) => message.error(e.message),
   });
 
   const privateOk = canSeePrivate(user.roles);
@@ -81,7 +82,7 @@ export function StudentsPage() {
         rowKey="id"
         loading={students.isLoading}
         dataSource={rows}
-        scroll={{ x: 760 }}
+        scroll={{ x: 960 }}
         pagination={TABLE_PAGINATION}
         columns={[
           { title: 'Mã', dataIndex: 'code', width: 90 },
@@ -102,7 +103,14 @@ export function StudentsPage() {
             ? [
                 { title: 'Phụ huynh', dataIndex: 'guardian' },
                 { title: 'Điện thoại', dataIndex: 'phone' },
-                { title: 'Học phí', dataIndex: 'tuitionMode', width: 110 },
+                {
+                  title: 'Hình thức đóng học phí',
+                  dataIndex: 'tuitionMode',
+                  width: 190,
+                  render: (v: string) => (v ? <Tag>{v}</Tag> : <Typography.Text type="secondary">—</Typography.Text>),
+                  filters: [...new Set((students.data ?? []).map((x) => x.tuitionMode).filter(Boolean))].map((v) => ({ text: v, value: v })),
+                  onFilter: (value: unknown, r: StudentRow) => r.tuitionMode === value,
+                },
               ]
             : []),
           {
@@ -144,7 +152,11 @@ export function StudentsPage() {
             <Input />
           </Form.Item>
           <Form.Item name="tuitionMode" label="Hình thức đóng học phí" initialValue="WE">
-            <Select options={['WE', 'A.KHOA', 'Theo tháng'].map((v) => ({ value: v, label: v }))} />
+            <AutoComplete
+              options={['WE', 'A.KHOA', 'Đóng theo tháng', 'Đóng theo khóa'].map((v) => ({ value: v }))}
+              placeholder="Chọn hoặc nhập hình thức khác"
+              filterOption={false}
+            />
           </Form.Item>
           <Form.Item name="note" label="Ghi chú riêng">
             <Input.TextArea rows={2} />

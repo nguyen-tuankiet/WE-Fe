@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://we-backend-fwjz.onrender.com/api/:path*" },
+    { "source": "/health", "destination": "https://we-backend-fwjz.onrender.com/health" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

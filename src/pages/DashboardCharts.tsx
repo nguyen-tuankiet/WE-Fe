@@ -134,7 +134,7 @@ function RatingDetail({ rating }: { rating: Rating }) {
         { title: 'Ngày kiểm tra', render: (_, r) => fmtDate(r.result.date) },
         { title: 'Điểm tổng', render: (_, r) => fmtPercent(r.percent) },
         { title: 'Phân loại', render: (_, r) => <RatingTag rating={r.rating} /> },
-        { title: '', render: (_, r) => <Link to={`/bao-cao?hv=${r.view.student.id}`}>Báo cáo</Link> },
+        { title: '', render: (_, r) => <Link to={`/bao-cao/${r.view.student.id}`}>Báo cáo</Link> },
       ]}
     />
   );

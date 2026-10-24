@@ -80,3 +80,5 @@ body {
 .chart-clickable .recharts-pie-sector:hover {
   opacity: 0.85;
 }
+
+.cal-plus:hover, .cal-plus:focus-visible { background: #f6e9ea !important; color: #860d12 !important; outline: none; }

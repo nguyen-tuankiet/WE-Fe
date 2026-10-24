@@ -4,13 +4,14 @@ import { Alert, App, Button, Collapse, DatePicker, Form, Modal, Select, Table, T
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { TODAY, createExamPlan, listEnrollments, listExams, type ExamResultView, type PlanView } from '../api';
+import { TODAY, createExamPlan, listAllUnits, listEnrollments, listExams, type ExamResultView, type PlanView } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { TABLE_PAGINATION } from '../components/pagination';
 import { RatingTag } from '../components/StatusTag';
-import { CURRICULUM } from '../mock/catalog';
+import { UnitModal } from '../components/UnitModal';
+import { API_MODE } from '../env';
 import { fmtDate, fmtPercent } from '../i18n/vi';
-import type { UnitTemplate } from '../domain/types';
+import type { UnitContent, UnitTemplate } from '../domain/types';
 
 const TEMPLATE_LABEL: Record<UnitTemplate, string> = {
   baby: 'Baby — Spelling & Writing',
@@ -24,7 +25,10 @@ export function AcademicsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['exams'], queryFn: listExams });
   const enrollments = useQuery({ queryKey: ['enrollments'], queryFn: listEnrollments });
+  const units = useQuery({ queryKey: ['units'], queryFn: listAllUnits });
+  const CURRICULUM = units.data ?? { baby: [], foundation: [], cambridge: [] };
   const [open, setOpen] = useState(false);
+  const [unitModal, setUnitModal] = useState<{ template: UnitTemplate; editing: UnitContent | null; open: boolean }>({ template: 'baby', editing: null, open: false });
   const [form] = Form.useForm();
   const enrollmentId = Form.useWatch('enrollmentId', form) as string | undefined;
 
@@ -99,7 +103,7 @@ export function AcademicsPage() {
                     title: '',
                     render: (_, r) => (
                       <>
-                        <Link to={`/hoc-vu/cham/${r.result.planId}`}>Mở lại</Link> · <Link to={`/bao-cao?hv=${r.view.student.id}`}>Báo cáo</Link>
+                        <Link to={`/hoc-vu/cham/${r.result.planId}`}>Mở lại</Link> · <Link to={`/bao-cao/${r.view.student.id}`}>Báo cáo</Link>
                       </>
                     ),
                   },
@@ -116,26 +120,33 @@ export function AcademicsPage() {
                   type="warning"
                   showIcon
                   style={{ marginBottom: 12 }}
-                  title="Nội dung mẫu để xem trước giao diện"
-                  description="Nội dung kiểm tra thật do bộ phận học vụ cung cấp. Chương trình chưa có nội dung sẽ không cho chấm; hệ thống không điền nội dung giả."
+                  title={API_MODE === 'mock' ? 'Nội dung mẫu để xem trước giao diện' : 'Nội dung do bộ phận học vụ cung cấp'}
+                  description="Nội dung kiểm tra thật do bộ phận học vụ cung cấp. Chương trình chưa có nội dung sẽ không cho chấm; hệ thống không điền nội dung giả. Sửa nội dung không làm đổi báo cáo cũ."
                 />
                 <Collapse
                   items={(Object.keys(CURRICULUM) as UnitTemplate[]).map((t) => ({
                     key: t,
                     label: TEMPLATE_LABEL[t],
                     children: (
-                      <Table
-                        size="small"
-                        rowKey="id"
-                        pagination={false}
-                        dataSource={CURRICULUM[t]}
-                        columns={[
-                          { title: 'Unit', dataIndex: 'name', width: 90 },
-                          { title: 'Chủ đề', dataIndex: 'topic' },
-                          { title: 'Từ vựng', render: (_, u) => `${u.words.length} từ: ${u.words.join(', ')}` },
-                          { title: 'Mẫu câu', render: (_, u) => u.patterns.join(' · ') },
-                        ]}
-                      />
+                      <>
+                        <Button size="small" icon={<PlusOutlined />} style={{ marginBottom: 8 }} onClick={() => setUnitModal({ template: t, editing: null, open: true })}>
+                          Thêm Unit
+                        </Button>
+                        <Table
+                          size="small"
+                          rowKey="id"
+                          pagination={false}
+                          dataSource={CURRICULUM[t]}
+                          locale={{ emptyText: 'Chưa có Unit nào — thêm nội dung để có thể lên lịch kiểm tra' }}
+                          columns={[
+                            { title: 'Unit', dataIndex: 'name', width: 90 },
+                            { title: 'Chủ đề', dataIndex: 'topic' },
+                            { title: 'Từ vựng', render: (_, u) => `${u.words.length} từ: ${u.words.join(', ')}` },
+                            { title: 'Mẫu câu', render: (_, u) => u.patterns.join(' · ') },
+                            { title: '', width: 70, render: (_, u) => <Button size="small" onClick={() => setUnitModal({ template: t, editing: u, open: true })}>Sửa</Button> },
+                          ]}
+                        />
+                      </>
                     ),
                   }))}
                 />
@@ -145,6 +156,7 @@ export function AcademicsPage() {
         ]}
       />
 
+      <UnitModal template={unitModal.template} editing={unitModal.editing} open={unitModal.open} onClose={() => setUnitModal((s) => ({ ...s, open: false }))} />
       <Modal
         title="Lên lịch kiểm tra"
         open={open}

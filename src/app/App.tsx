@@ -19,6 +19,11 @@ const AcademicsPage = page(() => import('../pages/Academics'), 'AcademicsPage');
 const GradingPage = page(() => import('../pages/Grading'), 'GradingPage');
 const ReportsPage = page(() => import('../pages/Reports'), 'ReportsPage');
 const CapPage = page(() => import('../pages/Cap'), 'CapPage');
+const ClassDetailPage = page(() => import('../pages/ClassDetail'), 'ClassDetailPage');
+const ProgramDetailPage = page(() => import('../pages/ProgramDetail'), 'ProgramDetailPage');
+const ReportDetailPage = page(() => import('../pages/ReportDetail'), 'ReportDetailPage');
+const TeachersPage = page(() => import('../pages/Teachers'), 'TeachersPage');
+const TeacherDetailPage = page(() => import('../pages/TeacherDetail'), 'TeacherDetailPage');
 const SettingsPage = page(() => import('../pages/Settings'), 'SettingsPage');
 
 export function App() {
@@ -32,13 +37,18 @@ export function App() {
           <Route path="/hoc-vien" element={<StudentsPage />} />
           <Route path="/hoc-vien/:id" element={<StudentProfilePage />} />
           <Route path="/lop-hoc" element={<ClassesPage />} />
+          <Route path="/lop-hoc/:id" element={<ClassDetailPage />} />
+          <Route path="/giao-vien" element={<TeachersPage />} />
+          <Route path="/giao-vien/:id" element={<TeacherDetailPage />} />
           <Route path="/diem-danh" element={<AttendancePage />} />
           <Route path="/khoa-hoc" element={<CoursesPage />} />
+          <Route path="/khoa-hoc/:programId" element={<ProgramDetailPage />} />
           <Route path="/hoc-bu" element={<MakeupPage />} />
           <Route path="/bao-luu" element={<ReservePage />} />
           <Route path="/hoc-vu" element={<AcademicsPage />} />
           <Route path="/hoc-vu/cham/:planId" element={<GradingPage />} />
           <Route path="/bao-cao" element={<ReportsPage />} />
+          <Route path="/bao-cao/:studentId" element={<ReportDetailPage />} />
           <Route path="/lich-cap" element={<CapPage />} />
           <Route path="/cai-dat" element={<SettingsPage />} />
         </Route>

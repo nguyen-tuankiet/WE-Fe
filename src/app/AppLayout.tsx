@@ -1,10 +1,11 @@
 import { BellOutlined, DownOutlined, HomeOutlined, LogoutOutlined, MenuOutlined, SwapOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Badge, Breadcrumb, Button, Dropdown, Flex, Grid, Layout, Menu, Tag, Typography } from 'antd';
+import { Avatar, Badge, Breadcrumb, Button, Dropdown, Flex, Grid, Layout, Menu, Spin, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { listStaff, listTasks } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import { API_MODE } from '../env';
 import { can, isManagement } from '../auth/permissions';
 import { ROLE_LABEL } from '../i18n/vi';
 import logoWhite from '../assets/logo-white.png';
@@ -15,15 +16,16 @@ import { NAV } from './nav';
 const { Sider, Header, Content } = Layout;
 
 export function AppLayout() {
-  const { user, login, logout } = useAuth();
+  const { user, ready, login, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const mobile = !screens.lg;
   const [collapsed, setCollapsed] = useState(true);
-  const staff = useQuery({ queryKey: ['staff'], queryFn: listStaff, enabled: !!user });
+  const staff = useQuery({ queryKey: ['staff'], queryFn: listStaff, enabled: !!user && API_MODE === 'mock' });
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: listTasks, enabled: !!user });
 
+  if (!ready) return <Spin size="large" style={{ display: 'block', margin: '120px auto' }} />;
   if (!user) return <Navigate to="/dang-nhap" replace state={{ from: location.pathname }} />;
 
   const items = NAV.filter((n) => can(user.roles, n.feature));
@@ -100,16 +102,20 @@ export function AppLayout() {
               trigger={['click']}
               menu={{
                 items: [
-                  {
-                    key: 'switch',
-                    icon: <SwapOutlined />,
-                    label: 'Chuyển tài khoản (demo)',
-                    children: demoAccounts.map((s) => ({
-                      key: `acc:${s.id}`,
-                      label: `${s.name} · ${s.roles.map((r) => ROLE_LABEL[r]).join(', ')}`,
-                    })),
-                  },
-                  { type: 'divider' },
+                  ...(API_MODE === 'mock'
+                    ? [
+                        {
+                          key: 'switch',
+                          icon: <SwapOutlined />,
+                          label: 'Chuyển tài khoản (demo)',
+                          children: demoAccounts.map((s) => ({
+                            key: `acc:${s.id}`,
+                            label: `${s.name} · ${s.roles.map((r) => ROLE_LABEL[r]).join(', ')}`,
+                          })),
+                        },
+                        { type: 'divider' as const },
+                      ]
+                    : []),
                   { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', danger: true },
                 ],
                 onClick: ({ key }) => {

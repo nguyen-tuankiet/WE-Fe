@@ -9,6 +9,7 @@ import {
   HistoryOutlined,
   PauseCircleOutlined,
   SettingOutlined,
+  SolutionOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
@@ -25,6 +26,7 @@ export const NAV: NavItem[] = [
   { path: '/tong-quan', feature: 'dashboard', label: 'Tổng quan', icon: <DashboardOutlined /> },
   { path: '/hoc-vien', feature: 'students', label: 'Học viên', icon: <TeamOutlined /> },
   { path: '/lop-hoc', feature: 'classes', label: 'Lớp học', icon: <BankOutlined /> },
+  { path: '/giao-vien', feature: 'teachers', label: 'Giáo viên', icon: <SolutionOutlined /> },
   { path: '/diem-danh', feature: 'attendance', label: 'Điểm danh', icon: <CheckSquareOutlined /> },
   { path: '/khoa-hoc', feature: 'courses', label: 'Khóa học', icon: <BookOutlined /> },
   { path: '/hoc-bu', feature: 'makeup', label: 'Học bù', icon: <HistoryOutlined /> },

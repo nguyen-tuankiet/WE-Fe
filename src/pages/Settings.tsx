@@ -1,16 +1,19 @@
-import { DownloadOutlined, InboxOutlined } from '@ant-design/icons';
+import { DownloadOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, App, Button, DatePicker, Flex, Form, Input, InputNumber, Popconfirm, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
+import { Alert, App, Button, DatePicker, Flex, Form, Input, InputNumber, Modal, Popconfirm, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
 import dayjs from 'dayjs';
-import { addHoliday, getConfig, listHolidays, listStaff, listStudents, removeHoliday, setConfig, setStaffActive } from '../api';
+import { useState } from 'react';
+import { addHoliday, getConfig, importStudentsCsv, listHolidays, listStaff, listStudents, removeHoliday, setConfig, setStaffActive, type ImportReport } from '../api';
 import { useUser } from '../auth/AuthContext';
 import { PageHeader } from '../components/PageHeader';
+import { StaffModal } from '../components/StaffModal';
+import type { Staff as StaffMember } from '../domain/types';
 import { ROLE_LABEL, fmtDate } from '../i18n/vi';
 
 function Staff({ admin }: { admin: boolean }) {
   const { message } = App.useApp();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['staff'], queryFn: listStaff });
+  const q = useQuery({ queryKey: ['staff'], queryFn: listStaff, enabled: admin });
   const toggle = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setStaffActive(id, active),
     onSuccess: (s) => {
@@ -18,8 +21,14 @@ function Staff({ admin }: { admin: boolean }) {
       qc.invalidateQueries();
     },
   });
+  const [modal, setModal] = useState<{ open: boolean; editing: StaffMember | null }>({ open: false, editing: null });
   if (!admin) return <Alert type="info" showIcon title="Chỉ Admin được quản lý tài khoản và vai trò." />;
   return (
+    <>
+    <Flex justify="flex-end" style={{ marginBottom: 12 }}>
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => setModal({ open: true, editing: null })}>Thêm nhân sự</Button>
+    </Flex>
+    <StaffModal open={modal.open} editing={modal.editing} onClose={() => setModal({ open: false, editing: null })} />
     <Table
       rowKey="id"
       loading={q.isLoading}
@@ -29,6 +38,7 @@ function Staff({ admin }: { admin: boolean }) {
       columns={[
         { title: 'Họ tên', dataIndex: 'name' },
         { title: 'Email', dataIndex: 'email' },
+        { title: 'Ngày sinh', width: 120, render: (_: unknown, s: StaffMember) => fmtDate(s.birthday) },
         { title: 'Vai trò', render: (_, s) => s.roles.map((r: keyof typeof ROLE_LABEL) => <Tag key={r} color="blue">{ROLE_LABEL[r]}</Tag>) },
         {
           title: 'Hoạt động',
@@ -44,8 +54,10 @@ function Staff({ admin }: { admin: boolean }) {
             </Popconfirm>
           ),
         },
+        { title: '', width: 70, render: (_, s) => <Button size="small" onClick={() => setModal({ open: true, editing: s })}>Sửa</Button> },
       ]}
     />
+    </>
   );
 }
 
@@ -129,7 +141,28 @@ function Config() {
 
 function DataTools() {
   const { message } = App.useApp();
+  const qc = useQueryClient();
   const students = useQuery({ queryKey: ['students'], queryFn: listStudents });
+  const [pending, setPending] = useState<{ csv: string; report: ImportReport } | null>(null);
+
+  /** Bước 1: chạy thử (không ghi) để đối chiếu; bước 2: xác nhận mới ghi. */
+  const preview = useMutation({
+    mutationFn: async (file: File) => {
+      const csv = await file.text();
+      return { csv, report: await importStudentsCsv(csv, true) };
+    },
+    onSuccess: setPending,
+    onError: (e: Error) => message.error(e.message),
+  });
+  const commit = useMutation({
+    mutationFn: () => importStudentsCsv(pending!.csv, false),
+    onSuccess: (r) => {
+      message.success(`Đã nhập ${r.created.length} học viên; bỏ qua ${r.duplicates.length} dòng trùng, ${r.errors.length} dòng lỗi.`);
+      setPending(null);
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => message.error(e.message),
+  });
   const exportCsv = () => {
     const rows = students.data ?? [];
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -145,10 +178,53 @@ function DataTools() {
   return (
     <Flex vertical gap={16} style={{ maxWidth: 640 }}>
       <Alert type="info" showIcon title="Nhập dữ liệu cần qua bước đối chiếu" description="Học viên trùng tên, số buổi chưa rõ và mã chương trình khác nhau phải được đối chiếu trước khi ghép. Nhập lặp không được nhân đôi dữ liệu; lô có lỗi phải báo rõ lô thành công và lô lỗi." />
-      <Upload.Dragger disabled accept=".csv,.xlsx" showUploadList={false}>
+      <Upload.Dragger
+        accept=".csv"
+        showUploadList={false}
+        disabled={preview.isPending}
+        beforeUpload={(file) => {
+          preview.mutate(file);
+          return false;
+        }}
+      >
         <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-        <p>Nhập từ bảng vận hành (CSV/Excel) — sẽ có khi backend sẵn sàng</p>
+        <p>Kéo thả hoặc bấm để chọn tệp CSV học viên (cột: Họ tên, Ngày sinh, Phụ huynh, SĐT, Địa chỉ)</p>
+        <p style={{ fontSize: 12, color: '#7b8499' }}>Hệ thống chạy thử và báo kết quả đối chiếu trước khi ghi. Tệp Excel: lưu thành CSV UTF-8 trước.</p>
       </Upload.Dragger>
+      <Modal
+        title="Kết quả đối chiếu trước khi nhập"
+        open={!!pending}
+        onCancel={() => setPending(null)}
+        onOk={() => commit.mutate()}
+        okText={`Nhập ${pending?.report.total ? pending.report.total - pending.report.duplicates.length - pending.report.errors.length : 0} học viên`}
+        okButtonProps={{ disabled: !pending || pending.report.total - pending.report.duplicates.length - pending.report.errors.length === 0 }}
+        cancelText="Hủy"
+        confirmLoading={commit.isPending}
+        width={640}
+        destroyOnHidden
+      >
+        {pending && (
+          <Flex vertical gap={12}>
+            <Typography.Text>
+              {pending.report.total} dòng · <b>{pending.report.total - pending.report.duplicates.length - pending.report.errors.length}</b> hợp lệ · {pending.report.duplicates.length} trùng · {pending.report.errors.length} lỗi
+            </Typography.Text>
+            {pending.report.errors.length > 0 && (
+              <Table size="small" rowKey="row" pagination={false} scroll={{ y: 160 }} dataSource={pending.report.errors} columns={[{ title: 'Dòng', dataIndex: 'row', width: 70 }, { title: 'Lỗi', dataIndex: 'message' }]} />
+            )}
+            {pending.report.duplicates.length > 0 && (
+              <Table
+                size="small"
+                rowKey="row"
+                pagination={false}
+                scroll={{ y: 160 }}
+                dataSource={pending.report.duplicates}
+                columns={[{ title: 'Dòng', dataIndex: 'row', width: 70 }, { title: 'Họ tên', dataIndex: 'name' }, { title: 'Trùng với', render: (_, d) => d.existingCode ?? 'dòng trước trong tệp' }]}
+              />
+            )}
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>Dòng trùng (cùng họ tên và ngày sinh) không bị gộp tự động. Dòng lỗi được bỏ qua; sửa tệp rồi nhập lại phần còn thiếu — nhập lặp không nhân đôi.</Typography.Text>
+          </Flex>
+        )}
+      </Modal>
       <Button icon={<DownloadOutlined />} onClick={exportCsv} loading={students.isLoading} style={{ alignSelf: 'flex-start' }}>
         Xuất danh sách học viên (CSV)
       </Button>

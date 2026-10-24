@@ -11,6 +11,7 @@ export type Feature =
   | 'academics'
   | 'reports'
   | 'cap'
+  | 'teachers'
   | 'settings';
 
 /** Ma trận quyền theo docs/01 (đề xuất). Backend phải kiểm lại ở API — đây chỉ để ẩn/hiện menu. */
@@ -25,6 +26,7 @@ export const ACCESS: Record<Feature, Role[]> = {
   academics: ['admin', 'manager', 'inspector'],
   reports: ['admin', 'manager', 'inspector'],
   cap: ['admin', 'manager'],
+  teachers: ['admin', 'manager'],
   settings: ['admin', 'manager'],
 };
 
