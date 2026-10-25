@@ -1015,10 +1015,31 @@ export async function listTeacherDirectory(): Promise<TeacherInfo[]> {
   return wait(staff.filter((s) => s.roles.includes('teacher')).map((s) => ({ id: s.id, name: s.name, email: s.email, active: s.active, birthday: s.birthday ?? null })));
 }
 
-export type StudentPatch = Partial<Pick<Student, 'name' | 'birthday' | 'guardian' | 'phone' | 'address' | 'tuitionMode' | 'note' | 'nextCourse'>>;
+export type StudentPatch = Partial<Pick<Student, 'name' | 'birthday' | 'guardian' | 'phone' | 'address' | 'tuitionMode' | 'note' | 'nextCourse'>> & { status?: 'active' | 'left' };
 
 export async function updateStudent(id: string, patch: StudentPatch): Promise<Student> {
   const s = students.find((x) => x.id === id) ?? fail('Không tìm thấy học viên');
   Object.assign(s, patch);
   return wait(s);
+}
+
+export interface EnrollmentPatch {
+  tuitionReceived?: boolean;
+  tuition?: number;
+  note?: string;
+  totalSessions?: number;
+  startDate?: string;
+  status?: 'completed';
+}
+
+export async function updateEnrollment(id: string, patch: EnrollmentPatch): Promise<void> {
+  const e = enrollments.find((x) => x.id === id) ?? fail('Không tìm thấy khóa đăng ký');
+  if ((patch.totalSessions !== undefined || patch.startDate !== undefined || patch.status) && e.status !== 'active') fail('Chỉ đổi số buổi, ngày bắt đầu hoặc kết thúc khi khóa đang học.');
+  if (patch.tuitionReceived !== undefined) e.tuitionReceived = patch.tuitionReceived;
+  if (patch.tuition !== undefined) e.tuition = patch.tuition;
+  if (patch.note !== undefined) e.note = patch.note;
+  if (patch.totalSessions !== undefined) e.totalSessions = patch.totalSessions;
+  if (patch.startDate !== undefined) e.startDate = patch.startDate;
+  if (patch.status) e.status = 'completed';
+  return wait(undefined);
 }

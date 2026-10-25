@@ -1,12 +1,13 @@
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Flex, InputNumber, Progress, Row, Switch, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Flex, InputNumber, Popconfirm, Progress, Row, Switch, Table, Tabs, Tag, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getStudentProfile, updateStudentStar, type EnrollmentView } from '../api';
+import { getStudentProfile, updateStudent, updateStudentStar, type EnrollmentView } from '../api';
 import { useUser } from '../auth/AuthContext';
 import { canSeePrivate, isManagement } from '../auth/permissions';
 import { RatingTag } from '../components/StatusTag';
+import { EnrollmentEditModal } from '../components/EnrollmentEditModal';
 import { StudentEditModal } from '../components/StudentEditModal';
 import {
   ENROLLMENT_STATUS_LABEL,
@@ -34,6 +35,15 @@ export function StudentProfilePage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['student', id], queryFn: () => getStudentProfile(id) });
   const [editing, setEditing] = useState(false);
+  const [editingEnrollment, setEditingEnrollment] = useState<EnrollmentView | null>(null);
+  const setStatus = useMutation({
+    mutationFn: (status: 'active' | 'left') => updateStudent(id, { status }),
+    onSuccess: (s) => {
+      message.success(s.status === 'left' ? 'Đã đánh dấu học viên nghỉ học.' : 'Đã mở lại hồ sơ học viên.');
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => message.error(e.message),
+  });
   const [star, setStar] = useState(false);
   const [red, setRed] = useState(60);
   const [good, setGood] = useState(80);
@@ -77,6 +87,19 @@ export function StudentProfilePage() {
             Sửa hồ sơ
           </Button>
         )}
+        {privateOk && student.status === 'active' && (
+          <Popconfirm title="Đánh dấu học viên nghỉ học?" description="Chỉ làm được khi học viên không còn khóa đang học hoặc đang bảo lưu. Lịch sử được giữ nguyên." okText="Nghỉ học" cancelText="Hủy" okButtonProps={{ danger: true }} onConfirm={() => setStatus.mutate('left')}>
+            <Button danger loading={setStatus.isPending}>
+              Đánh dấu nghỉ học
+            </Button>
+          </Popconfirm>
+        )}
+        {privateOk && student.status === 'left' && (
+          <Button loading={setStatus.isPending} onClick={() => setStatus.mutate('active')}>
+            Mở lại hồ sơ
+          </Button>
+        )}
+      <EnrollmentEditModal target={editingEnrollment} onClose={() => setEditingEnrollment(null)} />
       </Flex>
       <StudentEditModal student={student} open={editing} onClose={() => setEditing(false)} />
 
@@ -177,6 +200,18 @@ export function StudentProfilePage() {
                     ? [{ title: 'Học phí', render: (_: unknown, r: EnrollmentView) => `${fmtMoney(r.enrollment.tuition)}${r.enrollment.tuitionReceived ? '' : ' (chưa nhận)'}` }]
                     : []),
                   { title: 'Trạng thái', render: (_, r) => ENROLLMENT_STATUS_LABEL[r.enrollment.status] },
+                  ...(privateOk
+                    ? [
+                        {
+                          title: '',
+                          render: (_: unknown, r: EnrollmentView) => (
+                            <Button size="small" onClick={() => setEditingEnrollment(r)}>
+                              Sửa
+                            </Button>
+                          ),
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ),

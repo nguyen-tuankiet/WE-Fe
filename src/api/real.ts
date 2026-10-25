@@ -32,6 +32,7 @@ import type {
   ClassRow,
   DashboardCharts,
   DashboardSession,
+  EnrollmentPatch,
   EnrollmentView,
   ExamResultView,
   ImportReport,
@@ -651,4 +652,8 @@ export async function listTeacherDirectory(): Promise<TeacherInfo[]> {
 
 export async function updateStudent(id: string, patch: StudentPatch): Promise<Student> {
   return toStudent((await http<{ student: Json }>('PATCH', `${V1}/students/${id}`, patch)).student);
+}
+
+export async function updateEnrollment(id: string, patch: EnrollmentPatch): Promise<void> {
+  await http('PATCH', `${V1}/enrollments/${id}`, patch);
 }

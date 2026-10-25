@@ -1,9 +1,10 @@
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Flex, Input, Progress, Segmented, Spin, Table, Tag, Typography } from 'antd';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, App, Button, Card, Empty, Flex, Input, Popconfirm, Progress, Segmented, Spin, Table, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { listEnrollments, listPrograms, type EnrollmentView } from '../api';
+import { listEnrollments, listPrograms, updateEnrollment, type EnrollmentView } from '../api';
+import { EnrollmentEditModal } from '../components/EnrollmentEditModal';
 import { NewEnrollmentModal, TransferModal } from '../components/EnrollmentModals';
 import { PageHeader } from '../components/PageHeader';
 import { TABLE_PAGINATION } from '../components/pagination';
@@ -32,6 +33,17 @@ export function ProgramDetailPage() {
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
   const [transfer, setTransfer] = useState<EnrollmentView | null>(null);
+  const [editing, setEditing] = useState<EnrollmentView | null>(null);
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+  const received = useMutation({
+    mutationFn: (id: string) => updateEnrollment(id, { tuitionReceived: true }),
+    onSuccess: () => {
+      message.success('Đã ghi nhận đã nhận học phí.');
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => message.error(e.message),
+  });
 
   const program = programs.data?.find((p) => p.id === programId);
   const all = useMemo(() => (enrollments.data ?? []).filter((v) => v.program.id === programId), [enrollments.data, programId]);
@@ -74,6 +86,7 @@ export function ProgramDetailPage() {
       />
       <NewEnrollmentModal open={creating} presetProgramId={program.id} onClose={() => setCreating(false)} />
       <TransferModal target={transfer} onClose={() => setTransfer(null)} />
+      <EnrollmentEditModal target={editing} onClose={() => setEditing(null)} />
 
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20 }}>
@@ -107,7 +120,7 @@ export function ProgramDetailPage() {
           rowKey={(r) => r.enrollment.id}
           dataSource={rows}
           pagination={TABLE_PAGINATION}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1450 }}
           locale={{ emptyText: <Empty description="Chưa có học viên nào ở trạng thái này" /> }}
           columns={[
             {
@@ -168,13 +181,26 @@ export function ProgramDetailPage() {
             { title: 'Trạng thái', width: 100, render: (_, r) => ENROLLMENT_STATUS_LABEL[r.enrollment.status] },
             {
               title: '',
-              width: 110,
-              render: (_, r) =>
-                r.enrollment.status === 'active' ? (
-                  <Button size="small" onClick={() => setTransfer(r)}>
-                    Chuyển lớp
+              width: 260,
+              render: (_, r) => (
+                <Flex gap={6} wrap>
+                  {!r.enrollment.tuitionReceived && (
+                    <Popconfirm title="Xác nhận đã nhận học phí?" okText="Đã nhận" cancelText="Hủy" onConfirm={() => received.mutate(r.enrollment.id)}>
+                      <Button size="small" type="primary" ghost>
+                        Đã nhận học phí
+                      </Button>
+                    </Popconfirm>
+                  )}
+                  <Button size="small" onClick={() => setEditing(r)}>
+                    Sửa
                   </Button>
-                ) : null,
+                  {r.enrollment.status === 'active' && (
+                    <Button size="small" onClick={() => setTransfer(r)}>
+                      Chuyển lớp
+                    </Button>
+                  )}
+                </Flex>
+              ),
             },
           ]}
         />

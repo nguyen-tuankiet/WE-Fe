@@ -88,3 +88,4 @@ export const createUnit = api.createUnit;
 export const updateUnit = api.updateUnit;
 export const listTeacherDirectory = api.listTeacherDirectory;
 export const updateStudent = api.updateStudent;
+export const updateEnrollment = api.updateEnrollment;

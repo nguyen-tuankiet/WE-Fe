@@ -3,7 +3,7 @@ import { App, Button, Card, Checkbox, Col, DatePicker, Empty, Flex, List, Progre
 import dayjs, { type Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TODAY, getDashboard, listTasks, markTask, type Task, type TaskType } from '../api';
+import { TODAY, getDashboard, listTasks, markTask, updateEnrollment, type Task, type TaskType } from '../api';
 import { useUser } from '../auth/AuthContext';
 import { isManagement, isTeacherOnly } from '../auth/permissions';
 import { PageHeader } from '../components/PageHeader';
@@ -36,6 +36,17 @@ const presets: { label: string; value: [Dayjs, Dayjs] }[] = (() => {
 })();
 
 function TaskList({ tasks, onToggle }: { tasks: Task[]; onToggle: (t: Task, done: boolean) => void }) {
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+  /** Việc "Học phí": bấm để xác nhận đã nhận học phí của khóa đó (việc tự biến mất khỏi danh sách) */
+  const received = useMutation({
+    mutationFn: (t: Task) => updateEnrollment(t.key.replace('tuition:', ''), { tuitionReceived: true }),
+    onSuccess: () => {
+      message.success('Đã ghi nhận đã nhận học phí.');
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => message.error(e.message),
+  });
   if (!tasks.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có việc cần xử lý" />;
   return (
     <List
@@ -44,9 +55,16 @@ function TaskList({ tasks, onToggle }: { tasks: Task[]; onToggle: (t: Task, done
       renderItem={(t) => (
         <List.Item
           extra={
+            <Flex gap={12} align="center">
+            {t.type === 'tuition' && (
+              <Button size="small" type="primary" ghost loading={received.isPending && received.variables?.key === t.key} onClick={() => received.mutate(t)}>
+                Đã nhận học phí
+              </Button>
+            )}
             <Checkbox checked={!!t.handled} onChange={(e) => onToggle(t, e.target.checked)}>
               Đã xử lý
             </Checkbox>
+            </Flex>
           }
         >
           <List.Item.Meta
